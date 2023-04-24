@@ -8,3 +8,5 @@ __pycache__/
 env/
 software_model/datasets/
 software_model/data/
+software_model/models/
+.vscode/
