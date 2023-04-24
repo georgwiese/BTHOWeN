@@ -1,9 +1,9 @@
 #!/usr/bin/false
 
 import numpy as np
+from bloom_filter import BloomFilter
 from numba import jit
 
-from bloom_filter import BloomFilter
 
 # Converts a vector of booleans to an unsigned integer
 #  i.e. (2**0 * xv[0]) + (2**1 * xv[1]) + ... + (2**n * xv[n])
@@ -24,6 +24,17 @@ def generate_h3_values(num_inputs, num_entries, num_hashes):
     values = np.random.randint(0, num_entries, shape)
     return values
 
+def choose_p(num_inputs, num_hashes):
+
+    # TODO: Properly implement this function
+    # For now, we hard-code the prime chosen in the hackathon, see:
+    # https://hackmd.io/nCoxJCMlTqOr41_r1W4S9g?view
+
+    assert num_inputs == 1024
+    assert num_hashes == 2
+
+    return (1 << 21) - 9
+
 # Implementes a single discriminator in the WiSARD model
 # A discriminator is a collection of boolean LUTs with associated input sets
 # During inference, the outputs of all LUTs are summed to produce a response
@@ -34,11 +45,11 @@ class Discriminator:
     #  unit_inputs:   The number of boolean inputs to each LUT/filter in the discriminator
     #  unit_entries:  The size of the underlying storage arrays for the filters. Must be a power of two.
     #  unit_hashes:   The number of hash functions for each filter.
-    #  random_values: If provided, is used to set the random hash seeds for all filters. Otherwise, each filter generates its own seeds.
-    def __init__(self, num_inputs, unit_inputs, unit_entries, unit_hashes, random_values=None):
+    #  p:             Prime to use for the MishMash hash. Should be larger than unit_entries^unit_hashes
+    def __init__(self, num_inputs, unit_inputs, unit_entries, unit_hashes, p):
         assert((num_inputs/unit_inputs).is_integer())
         self.num_filters = num_inputs // unit_inputs
-        self.filters = [BloomFilter(unit_inputs, unit_entries, unit_hashes, random_values) for i in range(self.num_filters)]
+        self.filters = [BloomFilter(unit_inputs, unit_entries, unit_hashes, p) for i in range(self.num_filters)]
 
     # Performs a training step (updating filter values)
     # Inputs:
@@ -87,8 +98,8 @@ class WiSARD:
         pad_inputs = num_inputs + self.pad_zeros
         self.input_order = np.arange(pad_inputs) # Use each input exactly once
         np.random.shuffle(self.input_order) # Randomize the ordering of the inputs
-        random_values = generate_h3_values(unit_inputs, unit_entries, unit_hashes)
-        self.discriminators = [Discriminator(self.input_order.size, unit_inputs, unit_entries, unit_hashes, random_values) for i in range(num_classes)]
+        self.p = choose_p(unit_entries, unit_hashes)
+        self.discriminators = [Discriminator(self.input_order.size, unit_inputs, unit_entries, unit_hashes, self.p) for i in range(num_classes)]
 
     # Performs a training step (updating filter values) for all discriminators
     # Inputs:

@@ -223,7 +223,7 @@ def save_model(model, num_inputs, fname):
         "num_filter_inputs": model.discriminators[0].filters[0].num_inputs,
         "num_filter_entries": model.discriminators[0].filters[0].num_entries,
         "num_filter_hashes": model.discriminators[0].filters[0].num_hashes,\
-        "hash_values": model.discriminators[0].filters[0].hash_values
+        "p": model.p
     }
     state_dict = {
         "info": model_info,

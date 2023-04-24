@@ -3,6 +3,7 @@
 import numpy as np
 from numba import jit
 
+
 # Computes hash functions within the H3 family of integer-integer hashing functions,
 #  as described by Carter and Wegman in the paper "Universal Classes of Hash Functions"
 # This function requires more unique parameters than the Dietzfelbinger multiply-shift hash function, but avoids arithmetic
@@ -18,6 +19,39 @@ def h3_hash(xv, m):
     for i in range(m.shape[1]):
         reduction_result ^= selected_entries[:,i]
     return reduction_result
+
+@jit(nopython=True)
+def mish_mash_hash(xv: np.ndarray, p: int, hash_bits: int, num_hashes: int) -> np.ndarray:
+    """MishMash hash function: `(x^3 % p) % 2^l`
+    
+    See blog post: https://hackmd.io/nCoxJCMlTqOr41_r1W4S9g?view
+
+    Inputs:
+    - xv: boolean numpy array (shape: (N,))
+    - hash_bits: Number of bits per hash
+    - num_hashes: Number of hashes
+
+    Output: Shape (num_hashes,) array of hashes
+    """
+
+    assert p > (1 << (hash_bits * num_hashes)), f"p is too small!"
+
+    # Convert little-endian representation to python int
+    x = 0
+    for i in range(len(xv)):
+        x += xv[i] << i
+
+    hash = np.zeros(num_hashes, dtype=np.int64)
+
+    xp = x % p
+    x3 = xp * xp * xp
+    h = x3 % p
+
+    mask = (1 << hash_bits) - 1
+    for i in range(num_hashes):
+        hash[i] = (h >> (hash_bits*i)) & mask
+
+    return hash
 
 # Implements a Bloom filter, a data structure for approximate set membership
 # A Bloom filter can return one of two results: "possibly a member", and "definitely not a member"
@@ -36,9 +70,8 @@ class BloomFilter:
     #  num_entries:    The size of the underlying array for the filter. Must be a power of two. Increasing this reduces the risk of false positives.
     #  num_hashes:     The number of hash functions for the Bloom filter. This has a complex relation with false-positive rates
     #  hash_constants: Constant parameters for H3 hash
-    def __init__(self, num_inputs, num_entries, num_hashes, hash_constants):
-        self.num_inputs, self.num_entries, self.num_hashes = num_inputs, num_entries, num_hashes
-        self.hash_values = hash_constants
+    def __init__(self, num_inputs, num_entries, num_hashes, p):
+        self.num_inputs, self.num_entries, self.num_hashes, self.p = num_inputs, num_entries, num_hashes, p
         self.index_bits = int(np.log2(num_entries))
         self.data = np.zeros(num_entries, dtype=int)
         self.bleach = np.array(1, dtype=int)
@@ -47,9 +80,9 @@ class BloomFilter:
     # Coding in this style (as a static method) is necessary to use Numba for JIT compilation
     @staticmethod
     @jit(nopython=True)
-    def __check_membership(xv, hash_values, bleach, data):
+    def __check_membership(xv, p, hash_bits, num_hashes, bleach, data):
         #hash_results = dietzfelbinger_hash(x, a_values, b_values, num_inputs, index_bits)
-        hash_results = h3_hash(xv, hash_values)
+        hash_results = mish_mash_hash(xv, p, hash_bits, num_hashes)
         least_entry = data[hash_results].min() # The most times the entry has possibly been previously seen
         return least_entry >= bleach
 
@@ -58,14 +91,14 @@ class BloomFilter:
     #  xv:              The bitvector to check the membership of
     # Returns: A boolean, which is true if xv has possibly been seen at least b times, and false if it definitely has not been
     def check_membership(self, xv):
-        return BloomFilter.__check_membership(xv, self.hash_values, self.bleach, self.data)
+        return BloomFilter.__check_membership(xv, self.p, self.index_bits, self.num_hashes, self.bleach, self.data)
    
     # Implementation of the add_member function
     # Coding in this style (as a static method) is necessary to use Numba for JIT compilation
     @staticmethod
     @jit(nopython=True)
-    def __add_member(xv, hash_values, data):
-        hash_results = h3_hash(xv, hash_values)
+    def __add_member(xv, p, hash_bits, num_hashes, data):
+        hash_results = mish_mash_hash(xv, p, hash_bits, num_hashes)
         least_entry = data[hash_results].min() # The most times the entry has possibly been previously seen
         data[hash_results] = np.maximum(data[hash_results], least_entry+1) # Increment upper bound
 
@@ -73,7 +106,7 @@ class BloomFilter:
     # Inputs:
     #  xv: The bitvector
     def add_member(self, xv):
-        BloomFilter.__add_member(xv, self.hash_values, self.data)
+        BloomFilter.__add_member(xv, self.p, self.index_bits, self.num_hashes, self.data)
 
     # Set the bleaching threshold, which is used to exclude members which have not possibly been seen at least b times
     # Inputs:
