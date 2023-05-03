@@ -40,7 +40,10 @@ def convert_model(model_fname):
         expected_shape = (info["num_classes"], int(info["num_inputs"] * info["bits_per_input"] / info["num_filter_inputs"]), info["num_filter_entries"])
         assert bloom_filters.shape == expected_shape
 
+        input_order = model.input_order.astype(np.uint64)
+
         f.create_dataset("bloom_filters", data=bloom_filters)
+        f.create_dataset("input_order", data=input_order)
         for k, v in info.items():
             f.attrs[k] = v
 

@@ -30,10 +30,12 @@ def choose_p(num_inputs, num_hashes):
     # For now, we hard-code the prime chosen in the hackathon, see:
     # https://hackmd.io/nCoxJCMlTqOr41_r1W4S9g?view
 
-    assert num_inputs == 1024
-    assert num_hashes == 2
+    assert (num_inputs, num_hashes) in [(1024, 2), (256, 1)]
 
-    return (1 << 21) - 9
+    if (num_inputs, num_hashes) == (1024, 2):
+        return (1 << 21) - 9
+    elif (num_inputs, num_hashes) == (256, 1):
+        return 509
 
 # Implementes a single discriminator in the WiSARD model
 # A discriminator is a collection of boolean LUTs with associated input sets
