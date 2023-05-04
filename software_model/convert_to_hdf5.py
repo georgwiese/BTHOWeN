@@ -2,6 +2,7 @@
 
 import argparse
 import lzma
+import math
 import pickle
 from pathlib import Path
 
@@ -42,9 +43,14 @@ def convert_model(model_fname):
 
         input_order = model.input_order.astype(np.uint64)
 
+        # Reshape binarization thresholds to have shape (width, height, bits_per_input), assuming quadratic images
+        binarization_thresholds = info["binarization_thresholds"]
+        width = int(math.sqrt(binarization_thresholds.shape[0]))
+        binarization_thresholds = binarization_thresholds.reshape((width, width, binarization_thresholds.shape[1]))
+
         f.create_dataset("bloom_filters", data=bloom_filters)
         f.create_dataset("input_order", data=input_order)
-        f.create_dataset("binarization_thresholds", data=info["binarization_thresholds"])
+        f.create_dataset("binarization_thresholds", data=binarization_thresholds)
         for k, v in info.items():
             if k != "binarization_thresholds":
                 f.attrs[k] = v
