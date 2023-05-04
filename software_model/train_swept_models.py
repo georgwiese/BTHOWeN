@@ -1,24 +1,23 @@
 #!/usr/bin/env python3
 
-import sys
-import itertools
 import argparse
 import ctypes as c
-import numpy as np
-import torchvision.datasets as dsets
-import torchvision.transforms as transforms
-from multiprocessing import Pool, cpu_count
-from scipy.stats import norm
-
-# For saving models
-import pickle
+import itertools
 import lzma
 import os
+# For saving models
+import pickle
+import sys
+from multiprocessing import Pool, cpu_count
 
-from wisard import WiSARD
-
+import numpy as np
 # For the tabular datasets (all except MNIST)
 import tabular_tools
+import torchvision.datasets as dsets
+import torchvision.transforms as transforms
+from scipy.stats import norm
+from wisard import WiSARD
+
 
 # Perform inference operations using provided test set on provided model with specified bleaching value (default 1)
 def run_inference(inputs, labels, model, bleach=1):
@@ -38,7 +37,7 @@ def run_inference(inputs, labels, model, bleach=1):
     print(f"With bleaching={bleach}, accuracy={correct}/{num_samples} ({correct_percent}%); ties={ties}/{num_samples} ({tie_percent}%)")
     return correct
 
-def parameterized_run(train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels, unit_inputs, unit_entries, unit_hashes):
+def parameterized_run(train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels, _, unit_inputs, unit_entries, unit_hashes):
     model = WiSARD(train_inputs[0].size, train_labels.max()+1, unit_inputs, unit_entries, unit_hashes)
 
     print("Training model")
@@ -157,7 +156,13 @@ def binarize_datasets(train_dataset, test_dataset, bits_per_input, separate_vali
                 (test_inputs > min_inputs+(((i+1)/(bits_per_input+1))*(max_inputs-min_inputs))).astype(c.c_ubyte))
     test_inputs = np.concatenate(test_binarizations, axis=1)
 
-    return train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels
+    binarization_thresholds = [
+        mean_inputs+(i*std_inputs)
+        for i in std_skews
+    ]
+    binarization_thresholds = np.stack(binarization_thresholds, axis=1)
+
+    return train_inputs, train_labels, val_inputs, val_labels, test_inputs, test_labels, binarization_thresholds
 
 def get_datasets(dset_name):
     dset_name = dset_name.lower()
@@ -198,8 +203,8 @@ def create_models(dset_name, unit_inputs, unit_entries, unit_hashes, bits_per_in
         results = p.starmap(parameterized_run, configurations)
     for entries in unit_entries:
         print(
-            f"Best with {entries} entries: {max([results[i][1] for i in range(len(results)) if configurations[i][7] == entries])}")
-    configs_plus_results = [[configurations[i][6:9]] +
+            f"Best with {entries} entries: {max([results[i][1] for i in range(len(results)) if configurations[i][8] == entries])}")
+    configs_plus_results = [[configurations[i][7:10]] +
                             list(results[i]) for i in range(len(results))]
     configs_plus_results.sort(reverse=True, key=lambda x: x[2])
     for i in configs_plus_results:
@@ -210,11 +215,12 @@ def create_models(dset_name, unit_inputs, unit_entries, unit_hashes, bits_per_in
 
     for idx, result in enumerate(results):
         model = result[0]
-        model_inputs, model_entries, model_hashes = configurations[idx][6:9]
-        save_model(model, (datasets[0][0].size // bits_per_input),
-            f"./models/{dset_name}/{save_prefix}_{model_inputs}input_{model_entries}entry_{model_hashes}hash_{bits_per_input}bpi.pickle.lzma")
+        binarization_thresholds, model_inputs, model_entries, model_hashes = configurations[idx][6:10]
+        save_model(model, (datasets[0][0].size // bits_per_input), binarization_thresholds,
+            f"./models/{dset_name}/{save_prefix}_{model_inputs}input_{model_entries}entry_{model_hashes}hash_{bits_per_input}bpi.pickle.lzma"
+        )
 
-def save_model(model, num_inputs, fname):
+def save_model(model, num_inputs, binarization_thresholds, fname):
     model.binarize()
     model_info = {
         "num_inputs": num_inputs,
@@ -222,8 +228,9 @@ def save_model(model, num_inputs, fname):
         "bits_per_input": len(model.input_order) // num_inputs,
         "num_filter_inputs": model.discriminators[0].filters[0].num_inputs,
         "num_filter_entries": model.discriminators[0].filters[0].num_entries,
-        "num_filter_hashes": model.discriminators[0].filters[0].num_hashes,\
-        "p": model.p
+        "num_filter_hashes": model.discriminators[0].filters[0].num_hashes,
+        "p": model.p,
+        "binarization_thresholds": binarization_thresholds,
     }
     state_dict = {
         "info": model_info,

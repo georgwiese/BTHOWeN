@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-import sys
-import pickle
-import lzma
 import argparse
+import lzma
+import pickle
+
 import numpy as np
-from train_swept_models import get_datasets, binarize_datasets, run_inference
+from train_swept_models import binarize_datasets, get_datasets, run_inference
+
 
 def eval_model(model_fname, dset_name):
     print("Loading model")
@@ -19,7 +20,7 @@ def eval_model(model_fname, dset_name):
 
     print("Running inference")
     bits_per_input = state_dict["info"]["bits_per_input"]
-    test_inputs, test_labels = binarize_datasets(train_dataset, test_dataset, bits_per_input)[-2:]
+    _, _, _, _, test_inputs, test_labels, _ = binarize_datasets(train_dataset, test_dataset, bits_per_input)
     result = run_inference(test_inputs, test_labels, state_dict["model"], 1)
 
 def read_arguments():

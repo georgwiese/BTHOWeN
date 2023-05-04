@@ -44,6 +44,7 @@ def convert_model(model_fname):
 
         f.create_dataset("bloom_filters", data=bloom_filters)
         f.create_dataset("input_order", data=input_order)
+        f.create_dataset("binarization_thresholds", data=info["binarization_thresholds"])
         for k, v in info.items():
             f.attrs[k] = v
 
