@@ -46,7 +46,8 @@ def convert_model(model_fname):
         f.create_dataset("input_order", data=input_order)
         f.create_dataset("binarization_thresholds", data=info["binarization_thresholds"])
         for k, v in info.items():
-            f.attrs[k] = v
+            if k != "binarization_thresholds":
+                f.attrs[k] = v
 
 def read_arguments():
     parser = argparse.ArgumentParser(description="Convert a given model to HDF5")
