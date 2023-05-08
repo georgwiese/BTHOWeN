@@ -1,8 +1,11 @@
 #!/usr/bin/false
 
+import math
+
 import numpy as np
 from bloom_filter import BloomFilter
 from numba import jit
+from sympy import isprime
 
 
 # Converts a vector of booleans to an unsigned integer
@@ -26,16 +29,14 @@ def generate_h3_values(num_inputs, num_entries, num_hashes):
 
 def choose_p(num_inputs, num_hashes):
 
-    # TODO: Properly implement this function
-    # For now, we hard-code the prime chosen in the hackathon, see:
-    # https://hackmd.io/nCoxJCMlTqOr41_r1W4S9g?view
+    num_input_bits = math.log2(num_inputs)
+    assert num_input_bits.is_integer(), "num_inputs should be a poer of 2!"
 
-    assert (num_inputs, num_hashes) in [(1024, 2), (256, 1)]
+    num_bits_needed = num_hashes * int(num_input_bits) + 1
 
-    if (num_inputs, num_hashes) == (1024, 2):
-        return (1 << 21) - 9
-    elif (num_inputs, num_hashes) == (256, 1):
-        return 509
+    for candidate in range(1 << num_bits_needed, 1, -1):
+        if isprime(candidate):
+            return candidate
 
 # Implementes a single discriminator in the WiSARD model
 # A discriminator is a collection of boolean LUTs with associated input sets
