@@ -20,21 +20,17 @@ def input_to_value(xv):
         result += xv[i] << i
     return result
 
-# Generates a matrix of random values for use as m-arrays for H3 hash functions
-def generate_h3_values(num_inputs, num_entries, num_hashes):
-    assert(np.log2(num_entries).is_integer())
-    shape = (num_hashes, num_inputs)
-    values = np.random.randint(0, num_entries, shape)
-    return values
-
 def choose_p(num_inputs, num_hashes):
 
     num_input_bits = math.log2(num_inputs)
-    assert num_input_bits.is_integer(), "num_inputs should be a poer of 2!"
+    assert num_input_bits.is_integer(), "num_inputs should be a power of 2!"
 
     num_bits_needed = num_hashes * int(num_input_bits) + 1
+    # Note that due to the Bertrand's postulate it is guaranteed that there exists a prime
+    # between any x and 2*x for x > 3.
+    # thus the condition that p > 2*num_hashes * int(num_input_bits) will be fulfilled.
 
-    for candidate in range(1 << num_bits_needed, 1, -1):
+    for candidate in range(1 << num_bits_needed, 1 << (num_bits_needed - 1), -1):
         if isprime(candidate):
             return candidate
 
