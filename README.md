@@ -51,8 +51,10 @@ Here `<model_fname>` is a `lzma` model file, and `<dset_name>` is the dataset na
 
 Usage:
 ```bash
-    ./evaluate.py <model_fname>
+    ./convert_to_hdf5.py <model_fname>
 ```
+
+See [`output_format_spec.md`](output_format_spec.md) for a specification of the file format.
 
 ### Exporting MNIST
 

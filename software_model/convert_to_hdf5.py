@@ -18,8 +18,9 @@ def convert_model(model_fname):
     model = state_dict["model"]
     info = state_dict["info"]
 
-    assert model_fname.endswith(".lzma")
-    output_path = Path(model_fname[:-5] + ".hdf5")
+    suffix = ".pickle.lzma"
+    assert model_fname.endswith(suffix)
+    output_path = Path(model_fname[:-len(suffix)] + ".hdf5")
 
     if output_path.exists():
         print("Deleting existing output file")
