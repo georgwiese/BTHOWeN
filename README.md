@@ -54,6 +54,8 @@ Usage:
     ./convert_to_hdf5.py <model_fname>
 ```
 
+See [`output_format_spec.md`](output_format_spec.md) for a specification of the file format.
+
 ### Exporting MNIST
 
 `export_mnist.py` writes the MNIST test dataset to disc in PNG format.
