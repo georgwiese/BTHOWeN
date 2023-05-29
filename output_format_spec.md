@@ -12,8 +12,8 @@ The file contains the following attributes:
 - `num_classes`: The number of output classes.
 - `num_inputs`: The number of input pixels, i.e., `width * height` of the images the model was trained on.
 - `bits_per_input`: The number of bits used to represent a single pixel.
-- `num_filter_inputs`: The number of bits that are sent to one filter. Should be a power of 2.
-- `num_filter_entries`: The number of entries of the bloom filter array.
+- `num_filter_inputs`: The number of bits that are sent to one filter.
+- `num_filter_entries`: The number of entries of the bloom filter array. Should be a power of 2.
 - `num_filter_hashes`: The number of hash functions used for each bloom filter.
 - `p`: The prime used in the MishMash hash function (`x^3 \mod p) \mod 2^l`, where `l = ln2(num_filter_inputs) * num_filter_hashes`).
   `p` should be representable in exactly `l + 1` bits.
