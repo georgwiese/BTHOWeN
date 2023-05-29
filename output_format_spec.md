@@ -2,8 +2,11 @@
 
 This codebase persists models the pickle format.
 However, this format is difficult to work with from any programming language other than Python.
-
 For this reason, the `convert_to_hdf5.py` script converts models to a file format based on [HDF5](https://www.hdfgroup.org/solutions/hdf5/).
+
+This document specifies the format.
+
+## Attributes
 
 The file contains the following attributes:
 - `num_classes`: The number of output classes.
@@ -14,6 +17,8 @@ The file contains the following attributes:
 - `num_filter_hashes`: The number of hash functions used for each bloom filter.
 - `p`: The prime used in the MishMash hash function (`x^3 \mod p) \mod 2^l`, where `l = ln2(num_filter_inputs) * num_filter_hashes`).
   `p` should be representable in exactly `l + 1` bits.
+
+## Datasets
 
 The file contains three datasets:
 - `binarization_thresholds`:
