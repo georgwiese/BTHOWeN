@@ -1,4 +1,4 @@
-# BTHOWeN-zero-g
+# BTHOWeN-0g
 
 This is a fork of [ZSusskind/BTHOWeN](https://github.com/ZSusskind/BTHOWeN) with some slight modifications to make it more friendly for zero-knowledge proofs.
 See [their readme](https://github.com/ZSusskind/BTHOWeN/blob/master/README.md) for background on the models and the [readme of the main `zero_g` repository](https://github.com/zkp-gravity/zero_g/blob/main/README.md) on how to create proofs!
