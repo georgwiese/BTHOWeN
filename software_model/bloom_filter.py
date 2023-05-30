@@ -97,7 +97,6 @@ class BloomFilter:
     # Implementation of the add_member function
     # Coding in this style (as a static method) is necessary to use Numba for JIT compilation
     @staticmethod
-    @jit(nopython=True)
     def __add_member(xv, p, hash_bits, num_hashes, data):
         hash_results = mish_mash_hash(xv, p, hash_bits, num_hashes)
         least_entry = data[hash_results].min() # The most times the entry has possibly been previously seen
