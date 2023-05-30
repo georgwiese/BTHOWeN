@@ -20,7 +20,6 @@ def h3_hash(xv, m):
         reduction_result ^= selected_entries[:,i]
     return reduction_result
 
-@jit(nopython=True)
 def mish_mash_hash(xv: np.ndarray, p: int, hash_bits: int, num_hashes: int) -> np.ndarray:
     """MishMash hash function: `(x^3 % p) % 2^l`
     
@@ -43,6 +42,9 @@ def mish_mash_hash(xv: np.ndarray, p: int, hash_bits: int, num_hashes: int) -> n
 
     hash = np.zeros(num_hashes, dtype=np.int64)
 
+    # At this point, x is a np.int64, but that could overflow.
+    # Python ints are arbitrary precision, so we convert to that.
+    x = int(x)
     xp = x % p
     x3 = xp * xp * xp
     h = x3 % p
@@ -79,7 +81,6 @@ class BloomFilter:
     # Implementation of the check_membership function
     # Coding in this style (as a static method) is necessary to use Numba for JIT compilation
     @staticmethod
-    @jit(nopython=True)
     def __check_membership(xv, p, hash_bits, num_hashes, bleach, data):
         #hash_results = dietzfelbinger_hash(x, a_values, b_values, num_inputs, index_bits)
         hash_results = mish_mash_hash(xv, p, hash_bits, num_hashes)
